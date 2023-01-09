@@ -114,6 +114,19 @@ def relabel_data(pd_data: pd.DataFrame) -> pd.DataFrame:
     print('All blocks identified as negative has been relabeled')
     return full_data
     
+def get_estimators_table() -> tuple:
+    """_summary_
+    Get estimators' values
+    Returns:
+        tuple: tuple of values of each estimators
+    """
+    estimators_table = pd.read_csv("../best_estimators.csv", index_col=0)
+    rf_estimator = estimators_table.best['rf']
+    bag_estimator = estimators_table.best['bag_clf']
+    pas_estimator = estimators_table.best['bag_clf']
+    ada_estimator = estimators_table.best['adaboost']
+    return rf_estimator, bag_estimator, pas_estimator, ada_estimator
+
 
 def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> StackingClassifier:
     """_summary_
@@ -126,37 +139,38 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
     Returns:
         StackingClassifier: _description_
     """
-    #buscar_estimadores archivos csv #TODO
-    raf_clf = RandomForestClassifier(n_estimators=12, random_state=42, n_jobs=-1)
+    estimators_table = pd.read_csv("../best_estimators.csv", index_col=0)
+    rf_estimator, bag_estimator, pas_estimator, ada_estimator = get_estimators_table()
+    raf_clf = RandomForestClassifier(n_estimators=rf_estimator, random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
     if model_name == 'bag_clf-past_clf-adabost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=500, algorithm="SAMME.R", learning_rate=0.05)
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=True, n_jobs=-1)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=False, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'pas_clf-adabost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=500, algorithm="SAMME.R", learning_rate=0.05)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=False, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'bag_clf-adabost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=500, algorithm="SAMME.R", learning_rate=0.05)
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=True, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'bag_clf-pas_clf':
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=True, n_jobs=-1)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=False, n_jobs=-1)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'adabost':
-        voting_clf = AdaBoostClassifier(raf_clf, n_estimators=500, algorithm="SAMME.R", learning_rate=0.05)
+        voting_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
     elif model_name == 'pas_clf':
-        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=False, n_jobs=-1)
+        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
     else:
-        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=119, bootstrap=True, n_jobs=-1)
+        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
     print_sms(f"starting training of model '{model_name}' at", Timestamp.now())
     first_date = pd.to_datetime('3/1/2019', format="%m/%d/%Y")
     predict_date_begin = pd.to_datetime('1/1/2022', format="%m/%d/%Y")
@@ -496,6 +510,7 @@ def train_and_test(models_to_run: tuple) -> None:
         data_to_use = k_data.get(j)
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset")
         dataset = process_data(data_to_use)
+        # FInish this text #TODO
         print('The best estimator for Randon Forest was computed by GridSearchCV.\n'
             'considering a range from 10 to 500. Estimator for Random Forest is 12,\n'
             'for Bagging and Pasting classifiers is 119 (from a range 1-200) and\n'
