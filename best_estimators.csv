@@ -1,4 +1,4 @@
-model,range,best
+range,best
 rf,10-500,12
 1a,1-200,119
 1b,1-200,119
