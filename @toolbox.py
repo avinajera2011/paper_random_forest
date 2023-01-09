@@ -120,12 +120,12 @@ def get_estimators_table() -> tuple:
     Returns:
         tuple: tuple of values of each estimators
     """
-    estimators_table = pd.read_csv("../best_estimators.csv", index_col=0)
+    estimators_table = pd.read_csv("best_estimators.csv", index_col=0)
     rf_estimator = estimators_table.best['rf']
     bag_estimator = estimators_table.best['bag_clf']
     pas_estimator = estimators_table.best['bag_clf']
     ada_estimator = estimators_table.best['adaboost']
-    return rf_estimator, bag_estimator, pas_estimator, ada_estimator
+    return rf_estimator, bag_estimator, pas_estimator, ada_estimator, estimators_table
 
 
 def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> StackingClassifier:
@@ -139,8 +139,7 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
     Returns:
         StackingClassifier: _description_
     """
-    estimators_table = pd.read_csv("../best_estimators.csv", index_col=0)
-    rf_estimator, bag_estimator, pas_estimator, ada_estimator = get_estimators_table()
+    rf_estimator, bag_estimator, pas_estimator, ada_estimator, est_table = get_estimators_table()
     raf_clf = RandomForestClassifier(n_estimators=rf_estimator, random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
@@ -446,7 +445,7 @@ def run_tool_box() -> tuple:
             print_sms('For more than one model (e.g: 1a,4B,7a)')
         print_sms('All models (e.g: all)')
         models_to_train = input('Type here the model(s):')
-        incorrect_models, correct_models = check_models(models_to_train, )
+        incorrect_models, correct_models = check_models(models_to_train, selected_action)
     print(''.ljust(60, '-'))
     return selected_action, tuple(correct_models)
 
@@ -500,6 +499,24 @@ def print_sms(*kargs) -> None:
     result_to_txt.append(full_text)
     print(full_text)
     
+def form_row(model_name:str, mod_range: str, best_est: str) -> str:
+    """_summary_
+
+    Args:
+        model_name (str): Name of model
+        mod_range (str): range as str(e.g. 1-100)
+        best_est (str): best estimator value as str (e.g. '14')
+
+    Returns:
+        str: _description_
+    """
+    cs = 10
+    be = best_est
+    if best_est.isdigit():
+        be = int(best_est)
+    x = '|' + f'{model_name}'.center(cs, ' ') + '|'  + f'{mod_range}'.center(cs, ' ') + '|' + f'{be}'.center(cs, ' ') + '|'
+    return x
+    
 def train_and_test(models_to_run: tuple) -> None:
     for mod in models_to_run:
         model = models.get(int(mod[0]))
@@ -511,10 +528,16 @@ def train_and_test(models_to_run: tuple) -> None:
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset")
         dataset = process_data(data_to_use)
         # FInish this text #TODO
-        print('The best estimator for Randon Forest was computed by GridSearchCV.\n'
-            'considering a range from 10 to 500. Estimator for Random Forest is 12,\n'
-            'for Bagging and Pasting classifiers is 119 (from a range 1-200) and\n'
-            '500 (non range) for Adabost. The voting classifier is StackingClassifier')
+        all_estimators = get_estimators_table()
+        delim = ''.center(34, '-') + '\n'
+        print('The best estimator for each model was computed by GridSearchCV\n'
+              'and are shown in following table:')
+        
+        print(str(all_estimators[-1]).center(34, ' '))
+        # print('The best estimator for each model was computed by GridSearchCV. In case of '
+        #     f"Random Forest's model in a range from 10 to 500 the bes a value of {rf_estimator}. The estimator for"
+        #     f'for Bagging classifier is {bag_estimator} and for Pasting classifiers is {pas_estimator} (both range from 1-200).\n'
+        #     'The best estimator For Adabost 500 (non range)  . The voting classifier is StackingClassifier')
         trained_model = train_model(model, full_data=dataset, k_data=data_to_use)
         if not os.path.exists('models_saved'):
             os.mkdir('models_saved')

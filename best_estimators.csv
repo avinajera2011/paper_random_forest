@@ -2,4 +2,4 @@
 rf,10-500,12
 bag_clf,1-200,160
 pas_clf,1-200,119
-adabost,1-200,500
+adaboost,1-200,500
