@@ -589,9 +589,6 @@ def find_best_estimator(models_to_run: tuple) -> None:
         print_sms('The Parameters have been saved')
         print(''.ljust(width_of_text, '-'))
         
-        
-        
-        
 
 def get_prediction():
     pass #TODO
@@ -600,11 +597,13 @@ if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
     while True:
         selected_action, models_to_run = run_tool_box()
-        print_sms('models to run')
-        print(models_to_run)
         if selected_action == 1:
+            print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
             find_best_estimator(models_to_run)
-        elif selected_action == 2:
+        elif selected_action == 3:
+            get_prediction()
+        else:
+            print_sms('TRAINING AND TESTING MODELS')
             train_and_test(models_to_run)
     
      
