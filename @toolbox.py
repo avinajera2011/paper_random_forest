@@ -15,11 +15,11 @@ import joblib
 models = {
         1: 'bag_clf',
         2: 'pas_clf',
-        3: 'adabost',
+        3: 'adaboost',
         4: 'bag_clf-pas_clf',
-        5: 'bag_clf-adabost',
-        6: 'pas_clf-adabost',
-        7: 'bag_clf-past_clf-adabost',      
+        5: 'bag_clf-adaboost',
+        6: 'pas_clf-adaboost',
+        7: 'bag_clf-past_clf-adaboost',      
         8: 'rf'
             }
 k_data = {1: 'relabeled', 2: 'original'}   
@@ -146,22 +146,22 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
     else:
         rf_estimator, bag_estimator, pas_estimator, ada_estimator = est_table.best_data_original
         rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf_data_original
-    print_sms("The parameters (n_estimator) was taken from table.")
+    print_sms("The parameters for each model was taken from table.")
     raf_clf = RandomForestClassifier(max_leaf_nodes=rf_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
-    if model_name == 'bag_clf-past_clf-adabost':
+    if model_name == 'bag_clf-past_clf-adaboost':
         ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
         bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
         pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
-    elif model_name == 'pas_clf-adabost':
+    elif model_name == 'pas_clf-adaboost':
         ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
         pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
-    elif model_name == 'bag_clf-adabost':
+    elif model_name == 'bag_clf-adaboost':
         ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
         bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('ada', ada_clf)],
@@ -171,7 +171,7 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
         pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
-    elif model_name == 'adabost':
+    elif model_name == 'adaboost':
         raf_clf = RandomForestClassifier(max_leaf_nodes=ada_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
         voting_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
     elif model_name == 'pas_clf':
@@ -498,8 +498,6 @@ def check_models(text: str, action: int) -> tuple:
                 no_ok.append(i)
     return no_ok, models_ok
     
-
-
 def print_sms(*kargs) -> None:
     """_summary_
     Format the message and print it
@@ -513,23 +511,48 @@ def print_sms(*kargs) -> None:
     result_to_txt.append(full_text)
     print(full_text)
     
-def form_row(model_name:str, mod_range: str, best_est: str) -> str:
+def form_row(values: tuple) -> str:
     """_summary_
 
     Args:
-        model_name (str): Name of model
-        mod_range (str): range as str(e.g. 1-100)
-        best_est (str): best estimator value as str (e.g. '14')
-
+        # model_name (str): Name of model
+        # mod_range (str): range as str(e.g. 1-100)
+        # best_lab (str): best estimator value as str for labeled data (e.g. '14')
+        # best_orig(str): best estimator value as str for original data (e.g. '18')
+        # max_leaf_lab(str): max number of leaf nodes for labeled data (e.g. '6')
+        # max_leaf_orig(str): max number of leaf nodes for original data (e.g. '6')
     Returns:
         str: _description_
     """
     cs = 10
-    be = best_est
-    if best_est.isdigit():
-        be = int(best_est)
-    x = '|' + f'{model_name}'.center(cs, ' ') + '|'  + f'{mod_range}'.center(cs, ' ') + '|' + f'{be}'.center(cs, ' ') + '|'
+    # be = best_est
+    # if best_est.isdigit():
+    #     be = int(best_est)
+    # x = '|' + f'{model_name}'.center(cs, ' ') + '|'  + f'{mod_range}'.center(cs, ' ') + '|' + f'{be}'.center(cs, ' ') + '|\n'
+    model_name, mod_range, best_lab, max_leaf_lab, best_orig, max_leaf_orig = values
+    x= f"""|{model_name.center(cs, ' ')}|{mod_range.center(cs, ' ')}|{best_lab.center(cs, ' ')}|{max_leaf_lab.center(cs, ' ')}|{best_orig.center(cs, ' ')}|{max_leaf_orig.center(cs, ' ')}|"""
     return x
+    
+def print_estimators_table():
+    est_table = get_estimators_table()[-1]
+    print(''.center(width_of_text - 3, '-'))
+    cols_name = ('Model', 'Range', 'BELD', 'MLLD', 'BEOD', 'MLOD')
+    print(form_row(cols_name))
+    est_table = get_estimators_table()[-1]
+    tmp_list = list()
+    print(''.center(width_of_text - 3, '-'))
+    for item in (est_table.index):
+        tmp_list = list(est_table.loc[item, :])
+        tmp_list.insert(0, item)
+        all_values = tmp_list
+        all_values_str = tuple([str(val) for val in all_values])
+        txt_print = form_row(all_values_str)
+        print(txt_print)
+    print(''.center(width_of_text - 3, '-'))
+    print('BELD --> Best estimator with labeled data')
+    print('MLLD --> Max number of leaf nodes labeled data')
+    print('BEOD --> Best estimator with original data ')
+    print('MLOD --> Max number of leaf nodes original data')
     
 def train_and_test(models_to_run: tuple) -> None:
     for mod in models_to_run:
@@ -541,14 +564,9 @@ def train_and_test(models_to_run: tuple) -> None:
         data_to_use = k_data.get(j)
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset")
         dataset = process_data(data_to_use)
-        all_estimators = get_estimators_table()
         print('The best estimator for each model was computed by GridSearchCV\n'
               'and are shown in following table:')
-        print(str(all_estimators[-1]).center(34, ' '))
-        print('best_data_labeled --> Best estimator with labeled data')
-        print('max_leaf_data_labeled --> Max number of leaf nodes labeled data')
-        print('best_data_original --> Best estimator with original data ')
-        print('max_leaf_data_original --> Max number of leaf nodes original data')
+        print_estimators_table()
         trained_model = train_model(model, full_data=dataset, k_data=data_to_use)
         if not os.path.exists('models_saved'):
             os.mkdir('models_saved')
@@ -557,13 +575,14 @@ def train_and_test(models_to_run: tuple) -> None:
         results, all_prediction = test_model(trained_model, dataset)
         print_sms("Report of model's performance")
         performance = get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
-        result_to_txt = [str(item) for item in performance]
-        with open('results.txt', 'w') as f:
-            f.write(''.join(result_to_txt))
-        print_sms("results was saved in in the file 'results.txt'")   
-        print(''.ljust(width_of_text, '-'))
+        result_to_txt.extend([str(item) for item in performance])
+    with open('results.txt', 'w') as f:
+        f.write('\n'.join(result_to_txt))
+    print_sms("results was saved in in the file 'results.txt'")   
+    print(''.ljust(width_of_text, '-'))
         
 def find_best_estimator(models_to_run: tuple) -> None:     
+    selected_range = ''
     for mod in models_to_run:
         if mod[1] == 'A':
             j = 1
@@ -576,29 +595,27 @@ def find_best_estimator(models_to_run: tuple) -> None:
             y = dataset['status_clf']
         else:
             y = dataset['status']
+        if mod[0] == 4:
+            mod = '8' + mod[1]
         model = models.get(int(mod[0]))
         estimators_table = get_estimators_table()[-1]
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset to find best estimator")
         dataset = process_data(data_to_use)
-        str_rng_checking = False
-        selected_range = estimators_table.loc[model, 'range']
-        while not str_rng_checking:
+        while selected_range == '':
             print_sms('The value of the parameters are:')
-            print_sms(estimators_table)
+            print_estimators_table()
             print_sms('Please enter a range (e.g. 1-20) or leave it in blank')
             str_rng = input(f"to take range of model '{model}' from table: ") 
             if str_rng == '':
-                str_rng_checking = True
+                selected_range = estimators_table.loc[model, 'range']
                 print_sms(f'The selected range of {model} is:', selected_range)
             if str_rng.isdigit():
                 selected_range = f'1-{str_rng}'
-                str_rng_checking = True
             if '-' in str_rng:
                 vals = str_rng.split('-')
                 ok_values = [True if item.isdigit() else False for item in vals]
                 if False not in ok_values:
                     selected_range = f'{vals[0]}-{vals[1]}'
-                    str_rng_checking = True
         if '-' in selected_range:
             model_range_str = selected_range.split('-')
         else:
@@ -615,12 +632,14 @@ def find_best_estimator(models_to_run: tuple) -> None:
         best_est = grid_SearCV.best_estimator_.n_estimators
         max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
         print_sms('Best number of estimators:', best_est)
+        # TODO Add range per kind of data
+        # TODO Add option to enter dif range for each model
         if j==1:
-            estimators_table.at[model, 'best_data_labeled'] = best_est
-            estimators_table.at[model, 'max_leaf_data_labeled'] = max_leaf
+            estimators_table.at[model, 'best_data_labeled'] = int(best_est)
+            estimators_table.at[model, 'max_leaf_data_labeled'] = int(max_leaf)
         else:
-            estimators_table.at[model, 'best_data_original'] = best_est
-            estimators_table.at[model, 'max_leaf_data_original'] = max_leaf
+            estimators_table.at[model, 'best_data_original'] = int(best_est)
+            estimators_table.at[model, 'max_leaf_data_original'] = int(max_leaf)
         estimators_table.at[model, 'range'] = selected_range
         estimators_table.to_csv('best_estimators.csv')
         print_sms('Max number of leaf nodes:', max_leaf)
@@ -628,9 +647,8 @@ def find_best_estimator(models_to_run: tuple) -> None:
         print(''.ljust(width_of_text, '-'))
         
         
-
 def get_prediction():
-    pass #TODO
+    pass #TODO Prediction
 
 if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
