@@ -29,7 +29,7 @@ data_x_mz = pd.read_excel("todo_ok.xlsx", sheet_name='Datos por MZ', usecols=['M
                           dtype={'MZ': str, 'Norte': str, 'Sur': str, 'Oeste': str, 'Este': str})
 scaler = MinMaxScaler(feature_range=(0, 1))
 result_to_txt=list()
-width_of_text = 70
+width_of_text = 80
 
 def select_model() -> str:
     """_summary_
@@ -529,14 +529,14 @@ def form_row(values: tuple) -> str:
     # if best_est.isdigit():
     #     be = int(best_est)
     # x = '|' + f'{model_name}'.center(cs, ' ') + '|'  + f'{mod_range}'.center(cs, ' ') + '|' + f'{be}'.center(cs, ' ') + '|\n'
-    model_name, mod_range, best_lab, max_leaf_lab, best_orig, max_leaf_orig = values
-    x= f"""|{model_name.center(cs, ' ')}|{mod_range.center(cs, ' ')}|{best_lab.center(cs, ' ')}|{max_leaf_lab.center(cs, ' ')}|{best_orig.center(cs, ' ')}|{max_leaf_orig.center(cs, ' ')}|"""
+    model_name, mod_range_lab, best_lab, max_leaf_lab, mod_range_ori, best_orig, max_leaf_orig = values
+    x= f"""|{model_name.center(cs, ' ')}|{mod_range_lab.center(cs, ' ')}|{best_lab.center(cs, ' ')}|{max_leaf_lab.center(cs, ' ')}|{mod_range_ori.center(cs, ' ')}|{best_orig.center(cs, ' ')}|{max_leaf_orig.center(cs, ' ')}|"""
     return x
     
 def print_estimators_table():
     est_table = get_estimators_table()[-1]
     print(''.center(width_of_text - 3, '-'))
-    cols_name = ('Model', 'Range', 'BELD', 'MLLD', 'BEOD', 'MLOD')
+    cols_name = ('Model', 'RgLB', 'BELD', 'MLLD', 'RgOR', 'BEOD', 'MLOD')
     print(form_row(cols_name))
     est_table = get_estimators_table()[-1]
     tmp_list = list()
@@ -549,8 +549,10 @@ def print_estimators_table():
         txt_print = form_row(all_values_str)
         print(txt_print)
     print(''.center(width_of_text - 3, '-'))
+    print('RgLB --> Range for model(s) with labeled data')
     print('BELD --> Best estimator with labeled data')
     print('MLLD --> Max number of leaf nodes labeled data')
+    print('RgLB --> Range for model(s) with original data')
     print('BEOD --> Best estimator with original data ')
     print('MLOD --> Max number of leaf nodes original data')
     
@@ -588,26 +590,29 @@ def find_best_estimator(models_to_run: tuple) -> None:
             j = 1
         else:
             j = 2
+        if mod[0] == 4:
+            mod = '8' + mod[1]
+        model = models.get(int(mod[0]))
         data_to_use = k_data.get(j)
         dataset = process_data(data_to_use)
         X = dataset.loc[:, '1_week_ago':'8_week_ago']
+        estimators_table = get_estimators_table()[-1]
         if j == 1:
             y = dataset['status_clf']
         else:
             y = dataset['status']
-        if mod[0] == 4:
-            mod = '8' + mod[1]
-        model = models.get(int(mod[0]))
-        estimators_table = get_estimators_table()[-1]
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset to find best estimator")
         dataset = process_data(data_to_use)
         while selected_range == '':
+            if j==1:
+                selected_range = estimators_table.loc[model, 'range_labeled']
+            else:
+                selected_range = estimators_table.loc[model, 'range_original']
             print_sms('The value of the parameters are:')
             print_estimators_table()
             print_sms('Please enter a range (e.g. 1-20) or leave it in blank')
             str_rng = input(f"to take range of model '{model}' from table: ") 
             if str_rng == '':
-                selected_range = estimators_table.loc[model, 'range']
                 print_sms(f'The selected range of {model} is:', selected_range)
             if str_rng.isdigit():
                 selected_range = f'1-{str_rng}'
@@ -628,6 +633,7 @@ def find_best_estimator(models_to_run: tuple) -> None:
         rf_cl = RandomForestClassifier(random_state=42, max_leaf_nodes=8)        
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         grid_SearCV = GridSearchCV(rf_cl, param_grid=param_grid, n_jobs=-1, verbose=1)
+        input("hit ENTER")
         grid_SearCV.fit(X_train, y_train)
         best_est = grid_SearCV.best_estimator_.n_estimators
         max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
@@ -635,12 +641,13 @@ def find_best_estimator(models_to_run: tuple) -> None:
         # TODO Add range per kind of data
         # TODO Add option to enter dif range for each model
         if j==1:
+            estimators_table.at[model, 'range_labeled'] = selected_range
             estimators_table.at[model, 'best_data_labeled'] = int(best_est)
             estimators_table.at[model, 'max_leaf_data_labeled'] = int(max_leaf)
         else:
+            estimators_table.at[model, 'range_original'] = selected_range
             estimators_table.at[model, 'best_data_original'] = int(best_est)
             estimators_table.at[model, 'max_leaf_data_original'] = int(max_leaf)
-        estimators_table.at[model, 'range'] = selected_range
         estimators_table.to_csv('best_estimators.csv')
         print_sms('Max number of leaf nodes:', max_leaf)
         print_sms('The Parameters have been saved')
