@@ -121,10 +121,10 @@ def get_estimators_table() -> tuple:
         tuple: tuple of values of each estimators
     """
     estimators_table = pd.read_csv("best_estimators.csv", index_col=0)
-    rf_estimator = estimators_table.best['rf']
-    bag_estimator = estimators_table.best['bag_clf']
-    pas_estimator = estimators_table.best['bag_clf']
-    ada_estimator = estimators_table.best['adaboost']
+    rf_estimator = estimators_table.best_data_original['rf']
+    bag_estimator = estimators_table.best_data_original['bag_clf']
+    pas_estimator = estimators_table.best_data_original['bag_clf']
+    ada_estimator = estimators_table.best_data_original['adaboost']
     return rf_estimator, bag_estimator, pas_estimator, ada_estimator, estimators_table
 
 
@@ -139,8 +139,14 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
     Returns:
         StackingClassifier: _description_
     """
-    rf_estimator, bag_estimator, pas_estimator, ada_estimator, est_table = get_estimators_table()
-    rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf
+    est_table = get_estimators_table()[-1]
+    if k_data == 'relabeled':
+        rf_estimator, bag_estimator, pas_estimator, ada_estimator = est_table.best_data_labeled
+        rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf_data_labeled
+    else:
+        rf_estimator, bag_estimator, pas_estimator, ada_estimator = est_table.best_data_original
+        rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf_data_original
+    print_sms("The parameters (n_estimator) was taken from table.")
     raf_clf = RandomForestClassifier(max_leaf_nodes=rf_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
@@ -166,12 +172,15 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'adabost':
+        raf_clf = RandomForestClassifier(max_leaf_nodes=ada_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
         voting_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
     elif model_name == 'pas_clf':
+        raf_clf = RandomForestClassifier(max_leaf_nodes=pas_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
         voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
-    else:
+    else: # bag_clf
+        raf_clf = RandomForestClassifier(max_leaf_nodes=bag_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
         voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
-    print_sms(f"starting training of model '{model_name}' at", Timestamp.now())
+    print_sms(f"starting training of model '{model_name}' at ", Timestamp.now())
     first_date = pd.to_datetime('3/1/2019', format="%m/%d/%Y")
     predict_date_begin = pd.to_datetime('1/1/2022', format="%m/%d/%Y")
     training_data = full_data[(full_data['date'] > first_date) & (full_data['date'] < predict_date_begin)]
@@ -393,6 +402,7 @@ def get_model_performance(all_prediction_2022: dict, full_data: pd.DataFrame, al
     report['percent_pron_corr'] = percentage
     print_sms('ACCURACY OF THE MODEL:', np.average(report.percent_pron_corr))
     print_sms(report)
+    return all_res, report
     
 
 def run_tool_box() -> tuple:
@@ -535,6 +545,10 @@ def train_and_test(models_to_run: tuple) -> None:
         print('The best estimator for each model was computed by GridSearchCV\n'
               'and are shown in following table:')
         print(str(all_estimators[-1]).center(34, ' '))
+        print('best_data_labeled --> Best estimator with labeled data')
+        print('max_leaf_data_labeled --> Max number of leaf nodes labeled data')
+        print('best_data_original --> Best estimator with original data ')
+        print('max_leaf_data_original --> Max number of leaf nodes original data')
         trained_model = train_model(model, full_data=dataset, k_data=data_to_use)
         if not os.path.exists('models_saved'):
             os.mkdir('models_saved')
@@ -542,11 +556,12 @@ def train_and_test(models_to_run: tuple) -> None:
         print_sms(f"the trained model have been saved as {mod}-{model}.pkl in the folder 'models_saved'")
         results, all_prediction = test_model(trained_model, dataset)
         print_sms("Report of model's performance")
-        get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
-        result_to_txt = [str(item) for item in result_to_txt]
+        performance = get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
+        result_to_txt = [str(item) for item in performance]
         with open('results.txt', 'w') as f:
             f.write(''.join(result_to_txt))
         print_sms("results was saved in in the file 'results.txt'")   
+        print(''.ljust(width_of_text, '-'))
         
 def find_best_estimator(models_to_run: tuple) -> None:     
     for mod in models_to_run:
@@ -565,7 +580,25 @@ def find_best_estimator(models_to_run: tuple) -> None:
         estimators_table = get_estimators_table()[-1]
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset to find best estimator")
         dataset = process_data(data_to_use)
+        str_rng_checking = False
         selected_range = estimators_table.loc[model, 'range']
+        while not str_rng_checking:
+            print_sms('The value of the parameters are:')
+            print_sms(estimators_table)
+            print_sms('Please enter a range (e.g. 1-20) or leave it in blank')
+            str_rng = input(f"to take range of model '{model}' from table: ") 
+            if str_rng == '':
+                str_rng_checking = True
+                print_sms(f'The selected range of {model} is:', selected_range)
+            if str_rng.isdigit():
+                selected_range = f'1-{str_rng}'
+                str_rng_checking = True
+            if '-' in str_rng:
+                vals = str_rng.split('-')
+                ok_values = [True if item.isdigit() else False for item in vals]
+                if False not in ok_values:
+                    selected_range = f'{vals[0]}-{vals[1]}'
+                    str_rng_checking = True
         if '-' in selected_range:
             model_range_str = selected_range.split('-')
         else:
@@ -573,7 +606,7 @@ def find_best_estimator(models_to_run: tuple) -> None:
         model_range = tuple([int(item) for item in model_range_str])
         low_rg, up_rg = model_range
         param_grid = [
-            {'n_estimators': tuple(range(low_rg, up_rg))}
+            {'n_estimators': tuple(range(low_rg, up_rg + 1))}
         ]
         rf_cl = RandomForestClassifier(random_state=42, max_leaf_nodes=8)        
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -582,12 +615,18 @@ def find_best_estimator(models_to_run: tuple) -> None:
         best_est = grid_SearCV.best_estimator_.n_estimators
         max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
         print_sms('Best number of estimators:', best_est)
-        estimators_table.at[model, 'best'] = best_est
-        estimators_table.at[model, 'max_leaf'] = max_leaf
+        if j==1:
+            estimators_table.at[model, 'best_data_labeled'] = best_est
+            estimators_table.at[model, 'max_leaf_data_labeled'] = max_leaf
+        else:
+            estimators_table.at[model, 'best_data_original'] = best_est
+            estimators_table.at[model, 'max_leaf_data_original'] = max_leaf
+        estimators_table.at[model, 'range'] = selected_range
         estimators_table.to_csv('best_estimators.csv')
         print_sms('Max number of leaf nodes:', max_leaf)
         print_sms('The Parameters have been saved')
         print(''.ljust(width_of_text, '-'))
+        
         
 
 def get_prediction():
@@ -597,6 +636,7 @@ if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
     while True:
         selected_action, models_to_run = run_tool_box()
+        print(models_to_run)
         if selected_action == 1:
             print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
             find_best_estimator(models_to_run)

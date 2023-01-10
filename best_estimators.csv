@@ -1,5 +1,5 @@
-,range,best,max_leaf
-rf,10-50,12,8
-bag_clf,1-20,17,8
-pas_clf,1-20,19,8
-adaboost,1-20,500,8
+,range,best_data_labeled,max_leaf_data_labeled,best_data_original,max_leaf_data_original
+bag_clf,1-20,120,8,27,8
+pas_clf,1-20,22,8,22,8
+adaboost,1-20,15,8,15,9
+rf,1-100,53,8,53,8
