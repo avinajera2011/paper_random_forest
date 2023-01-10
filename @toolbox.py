@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, StackingClassifier, AdaBoos
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV, train_test_split
 from pandas import Timestamp
 from datetime import timedelta
 from collections import Counter
@@ -19,16 +20,16 @@ models = {
         5: 'bag_clf-adabost',
         6: 'pas_clf-adabost',
         7: 'bag_clf-past_clf-adabost',      
-        8: 'Random Forest'
+        8: 'rf'
             }
 k_data = {1: 'relabeled', 2: 'original'}   
 months = ('January', 'February','March','April','May','June','July','August','September','October', 'November', 'December')
 init_month = 1
 data_x_mz = pd.read_excel("todo_ok.xlsx", sheet_name='Datos por MZ', usecols=['MZ', 'Norte', 'Sur', 'Oeste', 'Este'],
                           dtype={'MZ': str, 'Norte': str, 'Sur': str, 'Oeste': str, 'Este': str})
-
-
+scaler = MinMaxScaler(feature_range=(0, 1))
 result_to_txt=list()
+width_of_text = 70
 
 def select_model() -> str:
     """_summary_
@@ -99,7 +100,6 @@ def relabel_data(pd_data: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: _description_
     """
     print('Relabeling all blocks identified as negative')
-    scaler = MinMaxScaler(feature_range=(0, 1))
     init_date = pd.to_datetime('3/1/2019', format="%m/%d/%Y")
     full_data = pd_data.copy()
     full_data_cluster = full_data[full_data.date>=init_date]
@@ -140,7 +140,8 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
         StackingClassifier: _description_
     """
     rf_estimator, bag_estimator, pas_estimator, ada_estimator, est_table = get_estimators_table()
-    raf_clf = RandomForestClassifier(n_estimators=rf_estimator, random_state=42, n_jobs=-1)
+    rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf
+    raf_clf = RandomForestClassifier(max_leaf_nodes=rf_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
     if model_name == 'bag_clf-past_clf-adabost':
@@ -392,7 +393,6 @@ def get_model_performance(all_prediction_2022: dict, full_data: pd.DataFrame, al
     report['percent_pron_corr'] = percentage
     print_sms('ACCURACY OF THE MODEL:', np.average(report.percent_pron_corr))
     print_sms(report)
-    return  all_res, report
     
 
 def run_tool_box() -> tuple:
@@ -401,24 +401,25 @@ def run_tool_box() -> tuple:
     Returns:
         int: Number of choice selected
     """
-    print_sms('Welcome to this toolbox')
     print_sms('Please, select one of the following options:')
     print_sms('1 Find best estimators (by GridSearchCV)')
     print_sms('2 Train and test model')
     print_sms('3 Predict')
     action = ''
+
     while not action.isdigit():
         action = input('Type here the selected option:')
         if action.isdigit():
             if int(action) < 1 or int(action) > 3:
                 action = ''
     selected_action = int(action)
-    print(''.ljust(60, '-'))
+    print(''.ljust(width_of_text, '-'))
     if selected_action == 1:
         print_sms('The following models can be used:')
         print_sms('1 Bagging Classifier with Random Forest (bag_clf)')
         print_sms('2 Pasting Classifier with Random Forest (pas_clf)')
         print_sms('3 AdaBoost Classifier with Random Forest (AdaBoost)')
+        print_sms('4 Random Forest (rf)')
         print_sms('With two different dataset')
         print_sms('a blocks identified as negative will be relabeled')
         print_sms('b original (no relabeled)')
@@ -446,7 +447,7 @@ def run_tool_box() -> tuple:
         print_sms('All models (e.g: all)')
         models_to_train = input('Type here the model(s):')
         incorrect_models, correct_models = check_models(models_to_train, selected_action)
-    print(''.ljust(60, '-'))
+    print(''.ljust(width_of_text, '-'))
     return selected_action, tuple(correct_models)
 
 
@@ -461,7 +462,7 @@ def check_models(text: str, action: int) -> tuple:
     """
     models_str = text.upper().split(',')
     if action == 1: # find best parameters
-        max_quantity_models = 3
+        max_quantity_models = 4
     elif action >= 2:   # Train and test models
         max_quantity_models = 7
     h=tuple(zip(range(1, max_quantity_models + 1), repeat('A', max_quantity_models)))
@@ -479,7 +480,10 @@ def check_models(text: str, action: int) -> tuple:
         no_ok =list()
         for i,item in enumerate(models_str):
             if item.strip() in all_combinations:
-                models_ok.append(item)
+                if action == 1:
+                    models_ok.append(item.replace('4', '8'))  # rf is model number 8
+                else:
+                    models_ok.append(item)
             else:
                 no_ok.append(i)
     return no_ok, models_ok
@@ -527,17 +531,10 @@ def train_and_test(models_to_run: tuple) -> None:
         data_to_use = k_data.get(j)
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset")
         dataset = process_data(data_to_use)
-        # FInish this text #TODO
         all_estimators = get_estimators_table()
-        delim = ''.center(34, '-') + '\n'
         print('The best estimator for each model was computed by GridSearchCV\n'
               'and are shown in following table:')
-        
         print(str(all_estimators[-1]).center(34, ' '))
-        # print('The best estimator for each model was computed by GridSearchCV. In case of '
-        #     f"Random Forest's model in a range from 10 to 500 the bes a value of {rf_estimator}. The estimator for"
-        #     f'for Bagging classifier is {bag_estimator} and for Pasting classifiers is {pas_estimator} (both range from 1-200).\n'
-        #     'The best estimator For Adabost 500 (non range)  . The voting classifier is StackingClassifier')
         trained_model = train_model(model, full_data=dataset, k_data=data_to_use)
         if not os.path.exists('models_saved'):
             os.mkdir('models_saved')
@@ -545,36 +542,69 @@ def train_and_test(models_to_run: tuple) -> None:
         print_sms(f"the trained model have been saved as {mod}-{model}.pkl in the folder 'models_saved'")
         results, all_prediction = test_model(trained_model, dataset)
         print_sms("Report of model's performance")
-        performance = get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
+        get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
         result_to_txt = [str(item) for item in result_to_txt]
         with open('results.txt', 'w') as f:
             f.write(''.join(result_to_txt))
         print_sms("results was saved in in the file 'results.txt'")   
         
-def find_best_estimator(models_to_run: tuple):  
-    f=pd.read_csv("best_estimators.csv")
+def find_best_estimator(models_to_run: tuple) -> None:     
     for mod in models_to_run:
-        model = models.get(int(mod[0]))
-        model = models.get(int(mod[0]))
         if mod[1] == 'A':
             j = 1
         else:
             j = 2
         data_to_use = k_data.get(j)
-        #Terminar GRID para cada modelo #TODO
-
+        dataset = process_data(data_to_use)
+        X = dataset.loc[:, '1_week_ago':'8_week_ago']
+        if j == 1:
+            y = dataset['status_clf']
+        else:
+            y = dataset['status']
+        model = models.get(int(mod[0]))
+        estimators_table = get_estimators_table()[-1]
+        print_sms(f"Running model '{model}' with '{data_to_use}' dataset to find best estimator")
+        dataset = process_data(data_to_use)
+        selected_range = estimators_table.loc[model, 'range']
+        if '-' in selected_range:
+            model_range_str = selected_range.split('-')
+        else:
+            model_range_str = ['1', '100']
+        model_range = tuple([int(item) for item in model_range_str])
+        low_rg, up_rg = model_range
+        param_grid = [
+            {'n_estimators': tuple(range(low_rg, up_rg))}
+        ]
+        rf_cl = RandomForestClassifier(random_state=42, max_leaf_nodes=8)        
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        grid_SearCV = GridSearchCV(rf_cl, param_grid=param_grid, n_jobs=-1, verbose=1)
+        grid_SearCV.fit(X_train, y_train)
+        best_est = grid_SearCV.best_estimator_.n_estimators
+        max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
+        print_sms('Best number of estimators:', best_est)
+        estimators_table.at[model, 'best'] = best_est
+        estimators_table.at[model, 'max_leaf'] = max_leaf
+        estimators_table.to_csv('best_estimators.csv')
+        print_sms('Max number of leaf nodes:', max_leaf)
+        print_sms('The Parameters have been saved')
+        print(''.ljust(width_of_text, '-'))
+        
+        
+        
+        
 
 def get_prediction():
     pass #TODO
 
 if __name__ == '__main__':
-    print(os.getcwd())
-    selected_action, models_to_run = run_tool_box()
-    print_sms('models to run')
-    print(models_to_run)
-    if selected_action == 1:
-        find_best_estimator()
-    elif selected_action == 2:
-        train_and_test(models_to_run)
+    print_sms('Welcome to this toolbox')
+    while True:
+        selected_action, models_to_run = run_tool_box()
+        print_sms('models to run')
+        print(models_to_run)
+        if selected_action == 1:
+            find_best_estimator(models_to_run)
+        elif selected_action == 2:
+            train_and_test(models_to_run)
     
      
