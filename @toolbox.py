@@ -449,15 +449,18 @@ def run_tool_box() -> tuple:
     models_to_train = ''    
     incorrect_models, correct_models = repeat(list(), 2)
     while len(incorrect_models) > 0 or len(correct_models) == 0:
-        print_sms('Please type the combination of models and kind of data')
-        print_sms('For only one model (e.g: 1a)')
-        if selected_action == 1:
-            print_sms('For more than one model (e.g: 1a,2B,3a)')
+        if selected_action == 3:
+            print_sms('Please type the combination of the model and kind of data (e.g. 1a)')
+            models_to_train = input('Type here the model combination:')
         else:
-            print_sms('For more than one model (e.g: 1a,4B,7a)')
-        print_sms('All models (e.g: all)')
-        models_to_train = input('Type here the model(s):')
+            print_sms('Please type the combination of the model(s) and kind of data')
+            print_sms('For only one model (e.g: 1a)')
+            print_sms('For more than one model (e.g: 1a,2B,3a)')
+            print_sms('All models (e.g: all)')
+            models_to_train = input('Type here the model(s):')
         incorrect_models, correct_models = check_models(models_to_train, selected_action)
+    if selected_action == 3 and len(correct_models) > 1:
+        print(f"The model {correct_models[0]} was selected from your list")
     print(''.ljust(width_of_text, '-'))
     return selected_action, tuple(correct_models)
 
@@ -526,10 +529,6 @@ def form_row(values: tuple) -> str:
         str: _description_
     """
     cs = 10
-    # be = best_est
-    # if best_est.isdigit():
-    #     be = int(best_est)
-    # x = '|' + f'{model_name}'.center(cs, ' ') + '|'  + f'{mod_range}'.center(cs, ' ') + '|' + f'{be}'.center(cs, ' ') + '|\n'
     model_name, mod_range_lab, best_lab, max_leaf_lab, mod_range_ori, best_orig, max_leaf_orig = values
     x= f"""|{model_name.center(cs, ' ')}|{mod_range_lab.center(cs, ' ')}|{best_lab.center(cs, ' ')}|{max_leaf_lab.center(cs, ' ')}|{mod_range_ori.center(cs, ' ')}|{best_orig.center(cs, ' ')}|{max_leaf_orig.center(cs, ' ')}|"""
     return x
@@ -614,8 +613,8 @@ def find_best_estimator(models_to_run: tuple) -> None:
             print_sms('The value of the parameters are:')
             print_estimators_table()
             print_sms("Please enter a range (e.g. 1-20) or leave it in blank to take range of model")
-            print_sms(f"'{model}' from table. The range that you type will be considered for all models")
-            str_rng = input(f"of your interest ({' '.join(models_of_interest)}):") 
+            print_sms(f"'{model}' from table. The range will be considered for all models of your")
+            str_rng = input(f"interest ({' '.join(models_of_interest)}):") 
             if str_rng == '':
                 print_sms(f'The selected range of {model} is:', selected_range)
             if str_rng.isdigit():
@@ -658,6 +657,9 @@ def find_best_estimator(models_to_run: tuple) -> None:
         
 def get_prediction():
     pass #TODO Prediction
+    models_sv = os.listdir('models_saved')
+    print(models_sv)
+
 
 if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
@@ -668,6 +670,7 @@ if __name__ == '__main__':
             print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
             find_best_estimator(models_to_run)
         elif selected_action == 3:
+            
             get_prediction()
         else:
             print_sms('TRAINING AND TESTING MODELS')
