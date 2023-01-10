@@ -280,6 +280,16 @@ def __separate_beside_zones(zone: str) -> tuple:
     return tuple(split)
 
 def check_arround_zone_is_positives_future(besid_zone: str, first_week_pos_zone: tuple, pos_zone_after_1st_week: tuple):
+    """_summary_
+    Check if any zone arround of selected zone is positive in next days of month
+    Args:
+        besid_zone (str): name of zone
+        first_week_pos_zone (tuple): positive zones in first week
+        pos_zone_after_1st_week (tuple): positives zone after first week
+
+    Returns:
+        _type_: Name of zone
+    """
     if besid_zone not in first_week_pos_zone and besid_zone in pos_zone_after_1st_week:
         return besid_zone
 
@@ -413,9 +423,9 @@ def run_tool_box() -> tuple:
         int: Number of choice selected
     """
     print_sms('Please, select one of the following options:')
-    print_sms('1 Find best estimators (by GridSearchCV)')
-    print_sms('2 Train and test model')
-    print_sms('3 Predict')
+    print_sms('1 Find best estimators (by GridSearchCV) for models(4 models)')
+    print_sms('2 Train and test model (7 models)')
+    print_sms('3 Predict (with any of saved models trained previously)')
     action = ''
 
     while not action.isdigit():
@@ -434,7 +444,7 @@ def run_tool_box() -> tuple:
         print_sms('With two different dataset')
         print_sms('a blocks identified as negative will be relabeled')
         print_sms('b original (no relabeled)')
-    elif selected_action == 2:
+    else:
         print_sms('The following models can be used:')
         print_sms('1 Bagging Classifier with Random Forest (bag_clf)')
         print_sms('2 Pasting Classifier with Random Forest (pas_clf)')
@@ -517,7 +527,7 @@ def print_sms(*kargs) -> None:
     
 def form_row(values: tuple) -> str:
     """_summary_
-
+    Form a row to be printed
     Args:
         # model_name (str): Name of model
         # mod_range (str): range as str(e.g. 1-100)
@@ -534,6 +544,9 @@ def form_row(values: tuple) -> str:
     return x
     
 def print_estimators_table():
+    """
+    Print estimator table
+    """
     est_table = get_estimators_table()[-1]
     print(''.center(width_of_text - 3, '-'))
     cols_name = ('Model', 'RgLB', 'BELD', 'MLLD', 'RgOR', 'BEOD', 'MLOD')
@@ -557,6 +570,11 @@ def print_estimators_table():
     print('MLOD --> Max number of leaf nodes original data')
     
 def train_and_test(models_to_run: tuple) -> None:
+    """_summary_
+    Train model(s)
+    Args:
+        models_to_run (tuple): name of models to run
+    """
     for mod in models_to_run:
         model = models.get(int(mod[0]))
         if mod[1] == 'A':
@@ -584,6 +602,11 @@ def train_and_test(models_to_run: tuple) -> None:
     print(''.ljust(width_of_text, '-'))
         
 def find_best_estimator(models_to_run: tuple) -> None:     
+    """_summary_
+    Find best estimators in models to run
+    Args:
+        models_to_run (tuple): tuple with all models' name to run
+    """
     selected_range = ''
     from collections import Counter
     models_of_interest = tuple(Counter([models.get(int(item[0])) for item in models_to_run]).keys())
@@ -640,7 +663,6 @@ def find_best_estimator(models_to_run: tuple) -> None:
         best_est = grid_SearCV.best_estimator_.n_estimators
         max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
         print_sms('Best number of estimators:', best_est)
-        # TODO Add option to enter dif range for each model
         if j==1:
             estimators_table.at[model, 'range_labeled'] = selected_range
             estimators_table.at[model, 'best_data_labeled'] = int(best_est)
@@ -655,23 +677,40 @@ def find_best_estimator(models_to_run: tuple) -> None:
         print(''.ljust(width_of_text, '-'))
         
         
-def get_prediction():
-    pass #TODO Prediction
+def get_prediction(selected_model_str: str):
+    """_summary_
+    Get prediction
+    Args:
+        selected_model_str (str): name of selected model
+    """
     models_sv = os.listdir('models_saved')
-    print(models_sv)
-
+    model_file = ''
+    for model in models_sv:
+        if model[:2] == selected_model_str[0]:
+            model_file = model
+    print_sms('The model is being loaded')
+    model_instance = joblib.load(f'models_saved/{model_file}')
+    print_sms('The instance of selected model was loaded')
+    predict_data = pd.read_csv('predict_data.csv')
+    data = predict_data.loc[:,'1_week_ago':'8_week_ago']
+    print_sms('Getting prediction ...')
+    prediction = model_instance.predict(data)
+    res = pd.DataFrame({'Zone': predict_data.MZ, 'Prediction': prediction})
+    res = res.astype({'Zone': str, 'Prediction': int})
+    pos_zones = tuple(res[res.Prediction == 1].Zone)
+    print(f'The following zones (total={len(pos_zones)}) will have TSD in this month\n', pos_zones)
+    print(''.ljust(width_of_text, '-'))
 
 if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
     while True:
         selected_action, models_to_run = run_tool_box()
-        print(models_to_run)
         if selected_action == 1:
             print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
             find_best_estimator(models_to_run)
         elif selected_action == 3:
             
-            get_prediction()
+            get_prediction(models_to_run)
         else:
             print_sms('TRAINING AND TESTING MODELS')
             train_and_test(models_to_run)
