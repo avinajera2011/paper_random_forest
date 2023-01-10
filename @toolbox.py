@@ -12,6 +12,7 @@ from collections import Counter
 from itertools import repeat
 import joblib
 
+
 models = {
         1: 'bag_clf',
         2: 'pas_clf',
@@ -585,6 +586,8 @@ def train_and_test(models_to_run: tuple) -> None:
         
 def find_best_estimator(models_to_run: tuple) -> None:     
     selected_range = ''
+    from collections import Counter
+    models_of_interest = tuple(Counter([models.get(int(item[0])) for item in models_to_run]).keys())
     for mod in models_to_run:
         if mod[1] == 'A':
             j = 1
@@ -610,8 +613,9 @@ def find_best_estimator(models_to_run: tuple) -> None:
                 selected_range = estimators_table.loc[model, 'range_original']
             print_sms('The value of the parameters are:')
             print_estimators_table()
-            print_sms('Please enter a range (e.g. 1-20) or leave it in blank')
-            str_rng = input(f"to take range of model '{model}' from table: ") 
+            print_sms("Please enter a range (e.g. 1-20) or leave it in blank to take range of model")
+            print_sms(f"'{model}' from table. The range that you type will be considered for all models")
+            str_rng = input(f"of your interest ({' '.join(models_of_interest)}):") 
             if str_rng == '':
                 print_sms(f'The selected range of {model} is:', selected_range)
             if str_rng.isdigit():
@@ -633,12 +637,10 @@ def find_best_estimator(models_to_run: tuple) -> None:
         rf_cl = RandomForestClassifier(random_state=42, max_leaf_nodes=8)        
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         grid_SearCV = GridSearchCV(rf_cl, param_grid=param_grid, n_jobs=-1, verbose=1)
-        input("hit ENTER")
         grid_SearCV.fit(X_train, y_train)
         best_est = grid_SearCV.best_estimator_.n_estimators
         max_leaf = grid_SearCV.best_estimator_.max_leaf_nodes
         print_sms('Best number of estimators:', best_est)
-        # TODO Add range per kind of data
         # TODO Add option to enter dif range for each model
         if j==1:
             estimators_table.at[model, 'range_labeled'] = selected_range
