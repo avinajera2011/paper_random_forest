@@ -148,39 +148,39 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
         rf_estimator, bag_estimator, pas_estimator, ada_estimator = est_table.best_data_original
         rf_max_leaf, bag_max_leaf, pas_max_leaf, ada_max_leaf = est_table.max_leaf_data_original
     print_sms("The parameters for each model was taken from table.")
-    raf_clf = RandomForestClassifier(max_leaf_nodes=rf_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
+    raf_clf = RandomForestClassifier(max_leaf_nodes=int(rf_max_leaf), n_estimators=int(rf_estimator), random_state=42, n_jobs=-1)
     scaler = MinMaxScaler(feature_range=(0, 1))
     print_sms('Training model')
     if model_name == 'bag_clf-past_clf-adaboost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=int(ada_estimator), algorithm="SAMME.R", learning_rate=0.05)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(bag_estimator), bootstrap=True, n_jobs=-1)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(pas_estimator), bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'pas_clf-adaboost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=int(ada_estimator), algorithm="SAMME.R", learning_rate=0.05)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(pas_estimator), bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('pas', pas_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'bag_clf-adaboost':
-        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
+        ada_clf = AdaBoostClassifier(raf_clf, n_estimators=int(ada_estimator), algorithm="SAMME.R", learning_rate=0.05)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(bag_estimator), bootstrap=True, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('ada', ada_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'bag_clf-pas_clf':
-        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
-        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
+        bag_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(bag_estimator), bootstrap=True, n_jobs=-1)
+        pas_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(pas_estimator), bootstrap=False, n_jobs=-1)
         voting_clf = StackingClassifier([('bag', bag_clf), ('pas', pas_clf)],
                                         final_estimator=RandomForestClassifier(random_state=43, n_jobs=-1))
     elif model_name == 'adaboost':
-        raf_clf = RandomForestClassifier(max_leaf_nodes=ada_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
-        voting_clf = AdaBoostClassifier(raf_clf, n_estimators=ada_estimator, algorithm="SAMME.R", learning_rate=0.05)
+        raf_clf = RandomForestClassifier(max_leaf_nodes=int(ada_max_leaf), n_estimators=int(rf_estimator), random_state=42, n_jobs=-1)
+        voting_clf = AdaBoostClassifier(raf_clf, n_estimators=int(ada_estimator), algorithm="SAMME.R", learning_rate=0.05)
     elif model_name == 'pas_clf':
-        raf_clf = RandomForestClassifier(max_leaf_nodes=pas_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
-        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=pas_estimator, bootstrap=False, n_jobs=-1)
+        raf_clf = RandomForestClassifier(max_leaf_nodes=int(pas_max_leaf), n_estimators=int(rf_estimator), random_state=42, n_jobs=-1)
+        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(pas_estimator), bootstrap=False, n_jobs=-1)
     else: # bag_clf
-        raf_clf = RandomForestClassifier(max_leaf_nodes=bag_max_leaf, n_estimators=rf_estimator, random_state=42, n_jobs=-1)
-        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=bag_estimator, bootstrap=True, n_jobs=-1)
+        raf_clf = RandomForestClassifier(max_leaf_nodes=int(bag_max_leaf), n_estimators=int(rf_estimator), random_state=42, n_jobs=-1)
+        voting_clf = BaggingClassifier(RandomForestClassifier(), n_estimators=int(bag_estimator), bootstrap=True, n_jobs=-1)
     print_sms(f"starting training of model '{model_name}' at ", Timestamp.now())
     first_date = pd.to_datetime('3/1/2019', format="%m/%d/%Y")
     predict_date_begin = pd.to_datetime('1/1/2022', format="%m/%d/%Y")
@@ -195,7 +195,7 @@ def train_model(model_name: str, full_data:pd.DataFrame, k_data: str) -> Stackin
         y = training_data['status_clf']
     data_input = scaler.fit_transform(X)
     voting_clf.fit(data_input, y)
-    print_sms('finished training at', Timestamp.now())
+    print_sms('finished training at ', Timestamp.now())
     return voting_clf
     
 def test_model(voting_clf: StackingClassifier, full_data: pd.DataFrame) -> tuple:
@@ -601,7 +601,7 @@ def train_and_test(models_to_run: tuple) -> None:
     print_sms("results was saved in in the file 'results.txt'")   
     print(''.ljust(width_of_text, '-'))
         
-def find_best_estimator(models_to_run: tuple) -> None:     
+def find_best_estimator(models_to_run: tuple, ask_range: bool) -> None:     
     """_summary_
     Find best estimators in models to run
     Args:
@@ -637,7 +637,10 @@ def find_best_estimator(models_to_run: tuple) -> None:
             print_estimators_table()
             print_sms("Please enter a range (e.g. 1-20) or leave it in blank to take range of model")
             print_sms(f"'{model}' from table. The range will be considered for all models of your")
-            str_rng = input(f"interest ({' '.join(models_of_interest)}):") 
+            if ask_range:
+                str_rng = input(f"interest ({' '.join(models_of_interest)}):") 
+            else:
+                str_rng = ''
             if str_rng == '':
                 print_sms(f'The selected range of {model} is:', selected_range)
             if str_rng.isdigit():
@@ -665,12 +668,13 @@ def find_best_estimator(models_to_run: tuple) -> None:
         print_sms('Best number of estimators:', best_est)
         if j==1:
             estimators_table.at[model, 'range_labeled'] = selected_range
-            estimators_table.at[model, 'best_data_labeled'] = int(best_est)
-            estimators_table.at[model, 'max_leaf_data_labeled'] = int(max_leaf)
+            estimators_table.at[model, 'best_data_labeled'] = best_est
+            estimators_table.at[model, 'max_leaf_data_labeled'] = max_leaf
         else:
             estimators_table.at[model, 'range_original'] = selected_range
-            estimators_table.at[model, 'best_data_original'] = int(best_est)
-            estimators_table.at[model, 'max_leaf_data_original'] = int(max_leaf)
+            estimators_table.at[model, 'best_data_original'] = best_est
+            estimators_table.at[model, 'max_leaf_data_original'] = max_leaf
+        estimators_table = estimators_table.astype(int, errors='ignore')
         estimators_table.to_csv('best_estimators.csv')
         print_sms('Max number of leaf nodes:', max_leaf)
         print_sms('The Parameters have been saved')
@@ -703,16 +707,22 @@ def get_prediction(selected_model_str: str):
 
 if __name__ == '__main__':
     print_sms('Welcome to this toolbox')
-    while True:
-        selected_action, models_to_run = run_tool_box()
-        if selected_action == 1:
-            print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
-            find_best_estimator(models_to_run)
-        elif selected_action == 3:
+    # all_models_find = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B')
+    #find_best_estimator(all_models_find, False)
+    all_models = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B', '7A', '7B')
+    train_and_test(all_models)
+    
+    # Disable from here to run in HPC
+    # while True:
+    #     selected_action, models_to_run = run_tool_box()
+    #     if selected_action == 1:
+    #         print_sms('RUNNING GRIDSEARCH TO FIND BEST PARAMETERS')
+    #         find_best_estimator(models_to_run)
+    #     elif selected_action == 3:
             
-            get_prediction(models_to_run)
-        else:
-            print_sms('TRAINING AND TESTING MODELS')
-            train_and_test(models_to_run)
+    #         get_prediction(models_to_run)
+    #     else:
+    #         print_sms('TRAINING AND TESTING MODELS')
+    #         train_and_test(models_to_run)
     
      

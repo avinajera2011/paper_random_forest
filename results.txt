@@ -1,25 +1,103 @@
+Welcome to this toolbox
+Please, select one of the following options:
+1 Find best estimators (by GridSearchCV) for models(4 models)
+2 Train and test model (7 models)
+3 Predict (with any of saved models trained previously)
+The following models can be used:
+1 Bagging Classifier with Random Forest (bag_clf)
+2 Pasting Classifier with Random Forest (pas_clf)
+3 AdaBoost Classifier with Random Forest (AdaBoost)
+4 bag_clf - pas_clf
+5 bag_clf - AdaBoost
+6 pas_clf - AdaBoost
+7 bag_clf - pas_clf - AdaBoost
+With two different dataset
+a blocks identified as negative will be relabeled
+b original (no relabeled)
+Please type the combination of the model(s) and kind of data
+For only one model (e.g: 1a)
+For more than one model (e.g: 1a,2B,3a)
+All models (e.g: all)
+TRAINING AND TESTING MODELS
+Running model 'bag_clf' with 'relabeled' dataset
+The parameters for each model was taken from table.
+Training model
+starting training of model 'bag_clf' at 2023-01-13 22:14:58.877105
+Percentage of training set :71
+Percentage of testing set :29
+finished training at2023-01-13 22:15:05.837332
+the trained model have been saved as 1A-bag_clf.pkl in the folder 'models_saved'
+Testing model
+Testing finished at2023-01-13 22:15:46.718787
+Report of model's performance
            Zones_pred_model  zones_detected  Zones_pred_model_match  model_accuracy  zion  znifw  pz  PvN
-January                 197              52                      48          0.9231    35     13   3  145
-February                 72              47                      33          0.7021    10     23  16   31
+January                 195              52                      48          0.9231    35     13   3  143
+February                 64              47                      31          0.6596    10     21  16   26
 March                    64              61                      33          0.5410    16     17  11   18
-April                    62              53                      22          0.4151     4     18   5   26
-May                      40              58                      24          0.4138     3     21   8   13
-June                     20             106                      12          0.1132     1     11   4    4
-July                    108              90                      42          0.4667    33      9   0   28
-August                   91              79                      37          0.4684     9     28  10   30
-September               228             185                      88          0.4757    83      5   1   53
-October                 139             110                      75          0.6818    29     46  24   34
+April                    60              53                      21          0.3962     4     17   5   24
+May                      41              58                      24          0.4138     3     21   8   14
+June                     29             106                      15          0.1415     1     14   6    5
+July                    104              90                      41          0.4556    32      9   0   25
+August                   97              79                      39          0.4937     9     30  14   30
+September               227             185                      88          0.4757    83      5   1   52
+October                 139             110                      75          0.6818    29     46  22   34
 November                184             120                      75          0.6250    72      3   0   68
-December                 40              63                      15          0.2381     3     12   6    4           False_neg  True_neg  False_pos  True_pos  tot_pron_corr  total_pron  percent_pron_corr
-January          145        67          0        52            119         264           0.450758
-February          31       164          6        41            205         242           0.847107
+December                 40              63                      15          0.2381     3     12   6    4
+Zones_pred_model          1244.0000
+zones_detected            1024.0000
+Zones_pred_model_match     505.0000
+model_accuracy               6.0451
+zion                       297.0000
+znifw                      208.0000
+pz                          92.0000
+PvN                        443.0000
+dtype: float64
+Zones_pred_model          103.666667
+zones_detected             85.333333
+Zones_pred_model_match     42.083333
+model_accuracy              0.503758
+zion                       24.750000
+znifw                      17.333333
+pz                          7.666667
+PvN                        36.916667
+dtype: float64
+ACCURACY OF THE MODEL:0.8053170967828144
+           False_neg  True_neg  False_pos  True_pos  tot_pron_corr  total_pron  percent_pron_corr
+January          143        69          0        52            121         264           0.458333
+February          26       169          9        38            207         242           0.855372
 March             18       222         15        46            268         301           0.890365
-April             26       169         17        36            205         248           0.826613
-May               13       229         31        27            256         300           0.853333
-June               4       183         90        16            199         293           0.679181
-July              28       180         10        80            260         298           0.872483
-August            30       182         18        61            243         291           0.835052
-September         53       112         10       175            287         350           0.820000
+April             24       171         17        36            207         248           0.834677
+May               14       228         31        27            255         300           0.850000
+June               5       182         82        24            206         293           0.703072
+July              25       183         11        79            262         298           0.879195
+August            30       182         12        67            249         291           0.855670
+September         52       113         10       175            288         350           0.822857
+October           34       148          5       105            253         292           0.866438
+November          68       115          4       116            231         303           0.762376
+December           7       253         30        33            286         323           0.885449
+           Zones_pred_model  zones_detected  Zones_pred_model_match  model_accuracy  zion  znifw  pz  PvN
+January                 195              52                      48          0.9231    35     13   3  143
+February                 64              47                      31          0.6596    10     21  16   26
+March                    64              61                      33          0.5410    16     17  11   18
+April                    60              53                      21          0.3962     4     17   5   24
+May                      41              58                      24          0.4138     3     21   8   14
+June                     29             106                      15          0.1415     1     14   6    5
+July                    104              90                      41          0.4556    32      9   0   25
+August                   97              79                      39          0.4937     9     30  14   30
+September               227             185                      88          0.4757    83      5   1   52
+October                 139             110                      75          0.6818    29     46  22   34
+November                184             120                      75          0.6250    72      3   0   68
+December                 40              63                      15          0.2381     3     12   6    4
+           False_neg  True_neg  False_pos  True_pos  tot_pron_corr  total_pron  percent_pron_corr
+January          143        69          0        52            121         264           0.458333
+February          26       169          9        38            207         242           0.855372
+March             18       222         15        46            268         301           0.890365
+April             24       171         17        36            207         248           0.834677
+May               14       228         31        27            255         300           0.850000
+June               5       182         82        24            206         293           0.703072
+July              25       183         11        79            262         298           0.879195
+August            30       182         12        67            249         291           0.855670
+September         52       113         10       175            288         350           0.822857
 October           34       148          5       105            253         292           0.866438
 November          68       115          4       116            231         303           0.762376
 December           7       253         30        33            286         323           0.885449
