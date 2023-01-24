@@ -569,12 +569,15 @@ def print_estimators_table():
     print('BEOD --> Best estimator with original data ')
     print('MLOD --> Max number of leaf nodes original data')
     
-def train_and_test(models_to_run: tuple) -> None:
+def train_and_test(models_to_run: tuple, file_number: 0) -> None:
     """_summary_
     Train model(s)
     Args:
         models_to_run (tuple): name of models to run
     """
+    all_acc_tmp = list()
+    pos_acc_tmp = list()
+    all_mod = list()
     for mod in models_to_run:
         model = models.get(int(mod[0]))
         if mod[1] == 'A':
@@ -590,16 +593,37 @@ def train_and_test(models_to_run: tuple) -> None:
         trained_model = train_model(model, full_data=dataset, k_data=data_to_use)
         if not os.path.exists('models_saved'):
             os.mkdir('models_saved')
-        joblib.dump(trained_model, f"models_saved/{mod}-{model}.pkl", compress=True)
+        joblib.dump(trained_model, f"models_saved/run-{file_number}-{mod}-{model}.pkl", compress=True)
         print_sms(f"the trained model have been saved as {mod}-{model}.pkl in the folder 'models_saved'")
         results, all_prediction = test_model(trained_model, dataset)
         print_sms("Report of model's performance")
         performance = get_model_performance(all_prediction_2022=all_prediction, full_data=dataset, all_results=results)
-        result_to_txt.extend([str(item) for item in performance])
-    with open('results.txt', 'w') as f:
+        all_res, report = performance
+        # print_sms('ACCURACY OF THE MODEL:', np.average(report.percent_pron_corr))
+        # print_sms(report)
+        # return all_res, report
+        # print_sms(all_res.sum())
+        # print_sms(all_res.mean())
+        # return all_res, report
+        all_mod.append(model)
+        overall_acc_model = np.average(report.percent_pron_corr)
+        positive_acc_model = all_res.mean()['model_accuracy']
+        all_acc_tmp.append(overall_acc_model)
+        pos_acc_tmp.append(positive_acc_model)
+    run_array = [file_number for _ in range(len(all_acc_tmp))]
+    all_acc = pd.DataFrame({'run': run_array, 'model': all_mod,
+                              'ov_acc': overall_acc_model, 'pos_acc': positive_acc_model})
+    result_to_txt.extend([str(item) for item in performance])
+    if file_number == 0:
+        filename = 'results.txt'
+    else:
+        filename = f'results-{model}.txt'
+    with open(filename, 'w') as f:
         f.write('\n'.join(result_to_txt))
-    print_sms("results was saved in in the file 'results.txt'")   
+    print_sms(f"results was saved in in the file '{filename}'")   
     print(''.ljust(width_of_text, '-'))
+    return all_acc
+    
         
 def find_best_estimator(models_to_run: tuple, ask_range: bool) -> None:     
     """_summary_
@@ -628,6 +652,8 @@ def find_best_estimator(models_to_run: tuple, ask_range: bool) -> None:
             y = dataset['status']
         print_sms(f"Running model '{model}' with '{data_to_use}' dataset to find best estimator")
         dataset = process_data(data_to_use)
+        if '-' in model:
+            break
         while selected_range == '':
             if j==1:
                 selected_range = estimators_table.loc[model, 'range_labeled']
@@ -706,11 +732,7 @@ def get_prediction(selected_model_str: str):
     print(''.ljust(width_of_text, '-'))
 
 if __name__ == '__main__':
-    print_sms('Welcome to this toolbox')
-    # all_models_find = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B')
-    #find_best_estimator(all_models_find, False)
-    all_models = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B', '7A', '7B')
-    train_and_test(all_models)
+    print_sms('Welcome to this toolbox')    
     
     # Disable from here to run in HPC
     # while True:
@@ -725,4 +747,14 @@ if __name__ == '__main__':
     #         print_sms('TRAINING AND TESTING MODELS')
     #         train_and_test(models_to_run)
     
+    # Enable from here to run in HPC
+    all_models_find = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B')
+    find_best_estimator(all_models_find, False)
+    all_acc = pd.DataFrame({'run': [''], 'model': [''], 'ov_acc': [''], 'pos_acc': ['']})
+    for i in range(1, 11):
+        all_models = ('1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B', '7A', '7B', '8A', '8B')
+        models_acc = train_and_test(all_models, 1)
+        all_acc = pd.concat((all_acc, models_acc))
+    all_acc.to_csv('all_acc.csv', index=True)
+
      

@@ -7,6 +7,6 @@
 #SBATCH --output=slurm.%J.out
 #SBATCH --mail-user=avinajera2011@gmail.com
 #SBATCH --mail-type=ALL
-source ./python_Anaconda3/bin/activate
-cd ./py_project1/paper_random_forest
+ml load Anaconda3/2022.05
+cd /users/uclv_andreyvz/py_project1/paper_random_forest
 python @toolbox.py
